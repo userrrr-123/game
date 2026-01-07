@@ -12,7 +12,7 @@
             overflow: hidden;
             background-color: #1a1a1a;
             font-family: 'Verdana', sans-serif;
-            touch-action: none;
+            touch-action: none; 
             display: flex;
             justify-content: center;
             align-items: center;
@@ -30,9 +30,13 @@
             border-radius: 8px;
             background-color: #278d38;
             cursor: crosshair;
+            width: 100%;
+            height: 100%;
+            max-width: 550px;
+            max-height: 750px;
         }
 
-        canvas { display: block; }
+        canvas { display: block; width: 100%; height: 100%; }
 
         #ui-layer {
             position: absolute;
@@ -98,6 +102,7 @@
             text-transform: uppercase;
             box-shadow: 4px 4px 0 #002255;
             transition: all 0.1s;
+            touch-action: manipulation;
         }
         button:hover { background: #0066cc; margin-top: -2px; margin-bottom: 2px; }
         button:active { transform: translate(4px, 4px); box-shadow: 0 0 0; }
@@ -126,7 +131,7 @@
         <div id="start-screen">
             <h1>Lego Tennis<br>Champion</h1>
             <p>La multi ani, Ioan!</p>
-            <button onclick="startGame()">START JOC</button>
+            <button id="startBtn">START JOC</button>
         </div>
 
         <div id="game-over-screen" class="hidden">
@@ -146,33 +151,23 @@
     </div>
 
 <script>
+    
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
-    let gameWidth, gameHeight;
 
-    function resizeGame() {
-        const isMobile = window.innerWidth < 600;
-        if (isMobile) {
-            gameWidth = window.innerWidth - 8;
-            gameHeight = window.innerHeight - 8;
-        } else {
-            gameWidth = Math.min(window.innerWidth - 30, 550);
-            gameHeight = Math.min(window.innerHeight - 30, 750);
-        }
-        canvas.width = gameWidth;
-        canvas.height = gameHeight;
-        
-        if (player) {
-          
-            player.y = gameHeight - (isMobile ? 150 : 100);
-            player.x = gameWidth / 2 - player.width / 2;
-        }
-        initDecor();
-        draw();
-    }
-
+    let gameWidth = canvas.clientWidth;
+    let gameHeight = canvas.clientHeight;
     
+
+    let player = { 
+        width: 80, 
+        height: 25, 
+        x: 0, 
+        y: 0, 
+        color: '#0055bf' 
+    };
+
     let score = 0;
     let highScore = localStorage.getItem('legoTennisIoanScore') || 0;
     document.getElementById('highScoreVal').innerText = highScore;
@@ -183,10 +178,30 @@
     let difficultyMultiplier = 1;
 
     let backgroundDecorations = [];
-    let player = { width: 80, height: 25, x: 0, y: 0, color: '#0055bf' };
     let balls = [];
     let bonuses = [];
     let particles = [];
+
+  
+
+    function resizeGame() {
+        
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+        
+        gameWidth = canvas.width;
+        gameHeight = canvas.height;
+
+        
+        player.y = gameHeight * 0.82; 
+        
+       
+        if (player.x > gameWidth) player.x = gameWidth / 2;
+        if (player.x < 0) player.x = 0;
+
+        initDecor();
+        if(!gameRunning) draw(); 
+    }
 
     function initDecor() {
         backgroundDecorations = [];
@@ -268,27 +283,39 @@
         }
     }
 
- 
+    
     function handleInput(clientX) {
         const rect = canvas.getBoundingClientRect();
         let relativeX = clientX - rect.left;
+        
+        
         if(relativeX < player.width/2) relativeX = player.width/2;
         if(relativeX > gameWidth - player.width/2) relativeX = gameWidth - player.width/2;
+        
         player.x = relativeX - player.width / 2;
     }
-    document.addEventListener('mousemove', (e) => { if(gameRunning) handleInput(e.clientX); });
+
+    document.addEventListener('mousemove', (e) => { 
+        if(gameRunning) handleInput(e.clientX); 
+    });
     
     
     const touchHandler = (e) => {
         if(gameRunning) {
-            e.preventDefault();
-            handleInput(e.touches[0].clientX);
+            
+            if(e.target === canvas) {
+                e.preventDefault();
+            }
+            if(e.touches.length > 0) {
+                handleInput(e.touches[0].clientX);
+            }
         }
     };
+   
     document.addEventListener('touchstart', touchHandler, {passive: false});
     document.addEventListener('touchmove', touchHandler, {passive: false});
 
-   
+  
     function drawBackgroundDecor() {
         backgroundDecorations.forEach(d => {
             ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.rotation);
@@ -325,7 +352,7 @@
         ctx.beginPath(); ctx.moveTo(0, gameHeight / 2); ctx.lineTo(gameWidth, gameHeight / 2); ctx.stroke(); ctx.restore();
     }
 
-   
+  
     function update() {
         difficultyMultiplier = 1 + (score / 30);
         let spawnRate = Math.floor(60 / difficultyMultiplier);
@@ -333,11 +360,13 @@
         if (frameCount % spawnRate === 0) balls.push(new Ball());
         if (frameCount % 300 === 0) bonuses.push(new BonusBrick());
 
-     
+      
         for (let i = balls.length - 1; i >= 0; i--) {
+            let b = balls[i]; b.update();
             
-            if (b.y + b.radius >= player.y && b.y - b.radius <= player.y + player.height + 10 &&
+            if (b.y + b.radius >= player.y && b.y - b.radius <= player.y + player.height + 20 &&
                 b.x >= player.x - 10 && b.x <= player.x + player.width + 10) {
+                
                 score++;
                 document.getElementById('scoreVal').innerText = score;
                 for(let k=0; k<12; k++) particles.push(new Particle(b.x, b.y, ['#d11010','#0055bf','#fff'][Math.floor(Math.random()*3)]));
@@ -351,10 +380,10 @@
             }
         }
 
-    
+       
         for (let i = bonuses.length - 1; i >= 0; i--) {
             let b = bonuses[i]; b.update();
-            if (b.y + 15 >= player.y && b.y - 15 <= player.y + player.height &&
+            if (b.y + 15 >= player.y && b.y - 15 <= player.y + player.height + 10 &&
                 b.x >= player.x && b.x <= player.x + player.width) {
                 score += 5;
                 let sDiv = document.getElementById('scoreVal');
@@ -375,24 +404,33 @@
     }
 
     function draw() {
+       
         ctx.fillStyle = '#278d38'; ctx.fillRect(0, 0, gameWidth, gameHeight);
+        
+       
         ctx.fillStyle = 'rgba(0, 60, 0, 0.15)';
         for(let i=15; i<gameWidth; i+=40) {
             for(let j=15; j<gameHeight; j+=40) { ctx.beginPath(); ctx.arc(i, j, 10, 0, Math.PI*2); ctx.fill(); }
         }
+        
         drawBackgroundDecor();
         drawTennisCourt();
+        
         particles.forEach(p => p.draw());
         drawLegoPlayer();
         bonuses.forEach(b => b.draw());
         balls.forEach(b => b.draw());
     }
 
-    function gameLoop() { if(gameRunning) { update(); draw(); animationId = requestAnimationFrame(gameLoop); } }
-
+    function gameLoop() { 
+        if(gameRunning) { 
+            update(); 
+            draw(); 
+            animationId = requestAnimationFrame(gameLoop); 
+        } 
+    }
 
     function updateLivesDisplay() {
-      
         const legoHeadSVG = `
         <svg width="28" height="32" viewBox="0 0 30 34" style="margin: 0 4px; display:inline-block; vertical-align:middle; filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.3));">
             <rect x="10" y="1" width="10" height="5" fill="#FFD700" stroke="#B8860B" stroke-width="1.5"/>
@@ -408,14 +446,24 @@
         document.getElementById('livesVal').innerHTML = h;
     }
 
-    function startGame() {
+    
+    window.startGame = function() {
         document.getElementById('start-screen').classList.add('hidden');
         document.getElementById('game-over-screen').classList.add('hidden');
-        score = 0; lives = 3; frameCount = 0;
-        balls = []; bonuses = []; particles = []; difficultyMultiplier = 1;
+        
+        
+        resizeGame(); 
+        score = 0; 
+        lives = 3; 
+        frameCount = 0;
+        balls = []; 
+        bonuses = []; 
+        particles = []; 
+        difficultyMultiplier = 1;
+        
         document.getElementById('scoreVal').innerText = "0";
-        initDecor();
         updateLivesDisplay();
+        
         gameRunning = true;
         gameLoop();
     }
@@ -432,10 +480,15 @@
         document.getElementById('game-over-screen').classList.remove('hidden');
     }
 
-    window.addEventListener('resize', resizeGame);
-    resizeGame();
     
-    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0,0,gameWidth,gameHeight);
+    document.getElementById('startBtn').addEventListener('click', window.startGame);
+
+   
+    window.addEventListener('resize', resizeGame);
+    window.onload = function() {
+        resizeGame();
+        ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0,0,gameWidth,gameHeight);
+    };
 
 </script>
 </body>
