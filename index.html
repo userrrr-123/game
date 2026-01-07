@@ -17,7 +17,7 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            user-select: none; /* Fara selectare text */
+            user-select: none;
             -webkit-user-select: none;
         }
 
@@ -29,8 +29,7 @@
             border-bottom-color: #a30000;
             border-radius: 8px;
             background-color: #278d38;
-            /* Cursor manuta Lego */
-            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewport="0 0 24 24" fill="none" stroke="black" stroke-width="2"><path d="M12 2C8 2 6 5 6 8v4H4v8h16v-8h-2V8c0-3-2-6-6-6z" fill="%23FFD700"/></svg>') 12 12, auto;
+            cursor: crosshair;
         }
 
         canvas { display: block; }
@@ -126,7 +125,7 @@
 
         <div id="start-screen">
             <h1>Lego Tennis<br>Champion</h1>
-            <p>La mulți ani, Ioan!</p>
+            <p>La multi ani, Ioan!</p>
             <button onclick="startGame()">START JOC</button>
         </div>
 
@@ -142,7 +141,7 @@
                     <path d="M 10 24 L 20 22" stroke="#222" stroke-width="2" stroke-linecap="round"/>
                 </svg>
             </div>
-            <button onclick="startGame()">Revanșa</button>
+            <button onclick="startGame()">Revansa</button>
         </div>
     </div>
 
@@ -152,7 +151,6 @@
     
     let gameWidth, gameHeight;
 
-    // Functie de resize pt mobil
     function resizeGame() {
         const isMobile = window.innerWidth < 600;
         if (isMobile) {
@@ -164,15 +162,17 @@
         }
         canvas.width = gameWidth;
         canvas.height = gameHeight;
+        
         if (player) {
-            player.y = gameHeight - (isMobile ? 80 : 60);
+          
+            player.y = gameHeight - (isMobile ? 150 : 100);
             player.x = gameWidth / 2 - player.width / 2;
         }
         initDecor();
         draw();
     }
 
-    // --- VARIABILE JOC ---
+    
     let score = 0;
     let highScore = localStorage.getItem('legoTennisIoanScore') || 0;
     document.getElementById('highScoreVal').innerText = highScore;
@@ -203,7 +203,7 @@
         }
     }
 
-    // --- CLASE ---
+    
     class Ball {
         constructor() {
             this.radius = 14;
@@ -268,7 +268,7 @@
         }
     }
 
-    // --- INPUT ---
+ 
     function handleInput(clientX) {
         const rect = canvas.getBoundingClientRect();
         let relativeX = clientX - rect.left;
@@ -278,7 +278,7 @@
     }
     document.addEventListener('mousemove', (e) => { if(gameRunning) handleInput(e.clientX); });
     
-    // Suport Mobil (Tap & Slide)
+    
     const touchHandler = (e) => {
         if(gameRunning) {
             e.preventDefault();
@@ -288,7 +288,7 @@
     document.addEventListener('touchstart', touchHandler, {passive: false});
     document.addEventListener('touchmove', touchHandler, {passive: false});
 
-    // --- DRAWING ---
+   
     function drawBackgroundDecor() {
         backgroundDecorations.forEach(d => {
             ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.rotation);
@@ -325,7 +325,7 @@
         ctx.beginPath(); ctx.moveTo(0, gameHeight / 2); ctx.lineTo(gameWidth, gameHeight / 2); ctx.stroke(); ctx.restore();
     }
 
-    // --- GAME LOGIC ---
+   
     function update() {
         difficultyMultiplier = 1 + (score / 30);
         let spawnRate = Math.floor(60 / difficultyMultiplier);
@@ -333,10 +333,9 @@
         if (frameCount % spawnRate === 0) balls.push(new Ball());
         if (frameCount % 300 === 0) bonuses.push(new BonusBrick());
 
-        // Update Balls
+     
         for (let i = balls.length - 1; i >= 0; i--) {
-            let b = balls[i]; b.update();
-            // Coliziune Player (putin mai iertatoare pe mobil)
+            
             if (b.y + b.radius >= player.y && b.y - b.radius <= player.y + player.height + 10 &&
                 b.x >= player.x - 10 && b.x <= player.x + player.width + 10) {
                 score++;
@@ -352,7 +351,7 @@
             }
         }
 
-        // Update Bonuses
+    
         for (let i = bonuses.length - 1; i >= 0; i--) {
             let b = bonuses[i]; b.update();
             if (b.y + 15 >= player.y && b.y - 15 <= player.y + player.height &&
@@ -391,9 +390,9 @@
 
     function gameLoop() { if(gameRunning) { update(); draw(); animationId = requestAnimationFrame(gameLoop); } }
 
-    // --- FUNCTIA MODIFICATA PENTRU VIETI LEGO (SVG) ---
+
     function updateLivesDisplay() {
-        // SVG definit pentru un cap de minifigurina
+      
         const legoHeadSVG = `
         <svg width="28" height="32" viewBox="0 0 30 34" style="margin: 0 4px; display:inline-block; vertical-align:middle; filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.3));">
             <rect x="10" y="1" width="10" height="5" fill="#FFD700" stroke="#B8860B" stroke-width="1.5"/>
@@ -406,8 +405,6 @@
 
         let h = "";
         for(let i=0; i<lives; i++) h += legoHeadSVG;
-        
-        // Folosim innerHTML pentru a interpreta SVG-ul
         document.getElementById('livesVal').innerHTML = h;
     }
 
@@ -438,7 +435,6 @@
     window.addEventListener('resize', resizeGame);
     resizeGame();
     
-    // Initial draw
     ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0,0,gameWidth,gameHeight);
 
 </script>
